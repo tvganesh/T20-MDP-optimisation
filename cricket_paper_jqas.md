@@ -574,7 +574,7 @@ Phase-specific quantitative decision support, grounded in a principled stochasti
 
 ## Acknowledgements
 
-Ball-by-ball data sourced from Cricsheet.org (Stevenson, 2023) under Creative Commons Attribution licence. Analysis conducted in Python 3.11 using NumPy 1.26, pandas 2.1, and matplotlib 3.8.
+Ball-by-ball data sourced from Cricsheet.org (Stevenson, 2023) under Creative Commons Attribution licence. Analysis conducted in Python 3.11 using NumPy 1.26, pandas 2.1, and matplotlib 3.8. Code and figures are available at: https://github.com/tvganesh/T20-MDP-optimisation.
 
 ---
 
