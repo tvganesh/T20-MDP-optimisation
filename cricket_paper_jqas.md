@@ -3,33 +3,30 @@ title: "Simulation-Based Optimisation of Batting Order and Bowling Plans in T20 
 subtitle: "A Markov Decision Process Framework with Dual Case Studies"
 author: "Tinniam V Ganesh"
 date: "April 2026"
+geometry: "left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm"
+papersize: a4
+fontsize: 11pt
+linestretch: 1.15
+tables: true
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{array}
+  - \usepackage{adjustbox}
+  - \renewcommand{\arraystretch}{1.2}
 ---
 
 ## Abstract
 
-T20 cricket presents two coupled, recurrent decision problems under uncertainty: at each wicket fall the batting captain must select which of the remaining batsmen to promote, and at each over boundary the bowling captain must assign a bowler to the next over subject to T20 quota rules. Both decisions are recourse actions in a multi-stage stochastic setting where winning is a threshold event, not an expectation, over a distribution of ball-by-ball outcomes. Prior approaches based on linear programming that maximise expected strike rate or minimise expected economy rate are structurally misaligned with this objective.
-
-This paper develops a unified Markov Decision Process (MDP) framework in which both problems share a common state space $(r, b, w)$, that is, runs remaining, balls remaining, and wickets in hand, and a common player profile engine that estimates per-ball outcome distributions across three innings phases (Powerplay, Middle, Death) from 1,161 IPL ball-by-ball records (2008–2025). Win and defend probabilities are estimated by vectorised Monte Carlo simulation over $N = 50{,}000$ innings trajectories. The batting order is searched by exhaustive enumeration over $n!$ permutations; the bowling plan by simulated annealing over the constrained space of feasible over assignments.
-
-The framework is applied to two intervention points drawn from the 2026 IPL season. In the Kolkata Knight Riders vs. Mumbai Indians match (29 March 2026), the optimal batting order improves MI's win probability by 4.1 pp (52.4% → 56.5%). In the Gujarat Titans vs. Punjab Kings match (31 March 2026), the optimal GT bowling plan improves defend probability by 5.2 pp (39.1% → 44.3%). In both cases the principal source of suboptimality is phase-agnostic deployment: high-Death-SR batsmen are promoted too late in the first match, and bowlers with high Death-over economy are deployed in the final overs in the second.
+This paper develops a unified Markov Decision Process (MDP) framework for optimising two recurring in-match decisions in T20 cricket viz. batting order selection and bowling plan assignment,  directly in terms of win and defend probability rather than expected runs. A three-phase player profile engine (Powerplay, Middle, Death) with James–Stein shrinkage is estimated from 1,161 IPL ball-by-ball records (2008–2025).  Win/defend probabilities are evaluated by vectorised Monte Carlo simulation over $N = 50{,}000$ innings trajectories. Batting orders are searched by exhaustive enumeration; bowling plans by simulated annealing over the quota- and consecutive-over-constrained feasible set. Applied to two 2026 IPL matches, the optimal batting order improves Mumbai Indians' win probability by 4.1 pp (52.4% → 56.5%), and the optimal Gujarat Titans bowling plan improves defend probability by 5.2 pp (39.1% → 44.3%). In both cases the source of suboptimality is phase-agnostic deployment of players.
 
 **Keywords:** T20 cricket; batting order optimisation; bowling plan optimisation; Markov Decision Process; Monte Carlo simulation; simulated annealing; James–Stein shrinkage; sports analytics; Indian Premier League
 
----
-
 ## 1. Introduction
 
-The Twenty20 (T20) format has transformed professional cricket into a high-frequency, high-stakes decision environment. A T20 innings spans exactly 120 legal deliveries per side, yet within that compact frame the trajectory of a match can shift dramatically within a single over. Team values in the Indian Premier League (IPL) now exceed one billion USD, playoff positions hinge on net run rate margins, and individual match outcomes directly affect player retention and squad selection. In this environment, the quality of tactical in-match decisions (which batsman to promote, which bowler to deploy) carries measurable financial and competitive consequences.
+The Twenty20 (T20) format has compressed professional cricket into 120 deliveries per side, yet within that frame a single over can determine the outcome. In the Indian Premier League (IPL), where franchise valuations exceed one billion USD and playoff positions hinge on net run rate, the quality of two recurring tactical decisions is decisive: **which batsman to promote** at each wicket fall, and **which bowler to assign** to each remaining over.
 
-The two most consequential recurring decisions in a T20 match are:
-
-**Batting order.** At each wicket fall, the batting captain must nominate which of the remaining batsmen comes in next. The optimal choice balances aggression (a high-strike-rate Death-over specialist) against preservation (a low-dismissal-probability anchor), and its value depends on the current match state (runs remaining, balls remaining, wickets already lost) and on which batsmen remain in the dressing room.
-
-**Bowling plan.** Across the overs still to be bowled, the bowling captain must assign bowlers to over slots subject to two hard constraints: the T20 quota (each bowler may not bowl more than four overs per innings) and the consecutive-over rule (the same bowler cannot bowl back-to-back overs). The optimal assignment balances phase-specific economy rate, wicket-taking probability, and dot-ball pressure, again conditional on match state.
-
-Both decisions share a common structure: they are **sequential stochastic decisions** made after observing the current match state, in an environment where future outcomes are governed by known (or estimable) probability distributions. This structure places them firmly within the framework of Markov Decision Processes (Bellman, 1957; Puterman, 1994). The crucial point, and the central departure from prior work, is that the objective is not to maximise or minimise an expectation, but to maximise a **probability**: the probability that the total runs scored (batting) or conceded (bowling) crosses a known threshold. Expected runs is a poor proxy for this probability when match states are close, run distributions are skewed, and the variance of outcomes is large relative to the margin required.
-
-Prior work has addressed batting order and bowling selection separately and largely through heuristic or linear programming (LP) approaches. While LP provides a useful first-order framework, assigning batsmen or bowlers to overs in proportion to their aggregate quality metrics, it is inadequate for the precise, in-match decisions studied here. LP optimises an expectation; the match objective is a tail probability. LP produces an allocation of overs across bowlers; the match requires a sequence. LP cannot encode the consecutive-over constraint or the interaction between wickets taken and subsequent run rates.
+Both decisions are sequential and state-dependent. The batting captain must balance aggression against preservation given the current match state (runs remaining, balls remaining, wickets in hand) and the batsmen still available. The bowling captain must assign bowlers subject to the T20 quota (maximum four overs per bowler) and the consecutive-over rule, while accounting for phase-specific economy and wicket-taking ability. Both decisions are therefore naturally modelled as Markov Decision Processes (Bellman, 1957; Puterman, 1994), with the objective of maximising a **probability** — that runs scored cross a target, or that runs conceded stay below it — rather than an expectation. Prior linear programming approaches (Ganesh, 2017) optimise expected runs, which is a poor proxy for win probability when match states are close and outcome distributions are skewed.
 
 This paper makes the following contributions:
 
@@ -43,8 +40,6 @@ This paper makes the following contributions:
 
 The paper is structured as follows. Section 2 reviews related work. Section 3 presents the MDP framework. Section 4 describes the player profile engine. Section 5 presents the Monte Carlo simulation. Section 6 covers the search algorithms. Sections 7 and 8 present the two case studies and their results. Section 9 provides a comparative analysis and discussion of limitations. Section 10 concludes.
 
----
-
 ## 2. Related Work
 
 The Duckworth–Lewis method (Duckworth and Lewis, 1998) implicitly defines a resource table over (runs needed, balls remaining, wickets in hand), the same state space used in this paper, for resetting targets in interrupted matches. It remains the de facto standard in international cricket and establishes that match state can be meaningfully quantified.
@@ -52,8 +47,6 @@ The Duckworth–Lewis method (Duckworth and Lewis, 1998) implicitly defines a re
 The author's earlier work (Ganesh, 2017) formulated batting lineup and bowling selection as linear programming problems, assigning ball-level encounters $o_{ij}$ between player $i$ and bowler $j$ to maximise aggregate strike rate (batting) or minimise aggregate economy rate (bowling). That formulation correctly identifies that the allocation of playing time across player matchups matters, but it optimises expected runs rather than win probability and cannot encode the sequential, constraint-rich structure of T20 over assignment. The present paper replaces the LP objective with a stochastic MDP framework whose objective directly matches the match outcome: a win probability threshold rather than an expectation.
 
 The MDP framework and Bellman equations are due to Bellman (1957) and Puterman (1994). The James–Stein shrinkage estimator applied to sparse player profiles follows James and Stein (1961). The simulated annealing search for bowling plans draws on Kirkpatrick, Gelatt, and Vecchi (1983).
-
----
 
 ## 3. The MDP Framework
 
@@ -65,7 +58,7 @@ $$\mathcal{S} = (r,\, b,\, w)$$
 
 where $r \in \{1, \ldots, R_{\max}\}$ is the runs remaining for the batting side to win (or, equivalently, for the bowling side to defend), $b \in \{0, 1, \ldots, B\}$ is the number of legal balls remaining in the innings ($B = 120$ in T20), and $w \in \{0, 1, \ldots, 10\}$ is the number of wickets in hand (batting perspective) or wickets taken (bowling perspective). The Markov property holds: the probability distribution over future match trajectories is fully determined by $\mathcal{S}$, independent of the history of play.
 
-On each legal delivery, one of seven outcomes $o \in \Omega = \{W, 0, 1, 2, 3, 4, 6\}$ is realised, where $W$ denotes the dismissal of the on-strike batsman and $\rho(o) \in \{0,0,1,2,3,4,6\}$ denotes the associated runs scored. The outcome $o = 5$ runs (an all-run five) is omitted from $\Omega$: it occurs in fewer than 0.1% of deliveries in the historical data and its inclusion has negligible effect on computed probabilities. Wides and no-balls are handled at the data-preprocessing stage and are not included in the legal delivery count.
+On each legal delivery, one of seven outcomes $o \in \Omega = \{W, 0, 1, 2, 3, 4, 6\}$ is realised, where $W$ denotes the dismissal of the on-strike batsman. The runs-scored function $\rho : \Omega \to \{0,1,2,3,4,6\}$ is defined by $\rho(W) = 0$ and $\rho(o) = o$ for $o \neq W$; both a wicket and a dot ball therefore contribute zero runs to the batting total. The outcome $o = 5$ runs (an all-run five) is omitted from $\Omega$: it occurs in fewer than 0.1% of deliveries in the historical data and its inclusion has negligible effect on computed probabilities. Wides and no-balls are handled at the data-preprocessing stage and are not included in the legal delivery count.
 
 ### 3.2 Batting MDP
 
@@ -83,11 +76,11 @@ $$T\!\left((r,b,w),\, o\right) = \begin{cases} (r,\; b-1,\; w-1) & o = W \\[3pt]
 
 **Bellman equation:**
 
-$$\boxed{V^B(r, b, w) = \sum_{o \in \Omega} p_i^{o,\phi(b)} \cdot V^B\!\left(T(r,b,w,o)\right)}$$
+$$\boxed{V_t^B(r, b, w) = \sum_{o \in \Omega} p_i^{o,\phi(b)} \cdot V_{t-1}^B\!\left(T(r,b,w,o)\right)}$$
 
-Expanding over all outcomes:
+where $t = b$ denotes the number of balls remaining, so $t-1$ refers to the state after the current delivery is bowled. Expanding over all outcomes:
 
-$$V^B(r,b,w) = p_i^{W,\phi} \cdot V^B(r,\, b-1,\, w-1) + \sum_{\rho \in \{0,1,2,3,4,6\}} p_i^{\rho,\phi} \cdot V^B(r - \rho,\, b-1,\, w)$$
+$$V_t^B(r,b,w) = p_i^{W,\phi} \cdot V_{t-1}^B(r,\, b-1,\, w-1) + \sum_{\rho \in \{0,1,2,3,4,6\}} p_i^{\rho,\phi} \cdot V_{t-1}^B(r - \rho,\, b-1,\, w)$$
 
 **Strike rotation** is enforced: the on-strike batsman rotates to the non-striker when $\rho(o)$ is odd, or when $b$ is the last ball of an over. This is consequential: which batsman faces the first ball of the Death overs (16–20) depends on the parity of singles accumulated during overs 14–15, and the SR differential between a Death-over specialist and a lower-order batsman can exceed 50 points.
 
@@ -117,7 +110,7 @@ Here $w$ counts additional wickets taken from the intervention point; the inning
 
 **Bellman equation:**
 
-$$\boxed{V^\pi(d, b, w) = \sum_{o \in \Omega} p_j^{o,\phi(b)} \cdot V^\pi\!\left(T(d,b,w,o)\right)}$$
+$$\boxed{V_t^\pi(d, b, w) = \sum_{o \in \Omega} p_j^{o,\phi(b)} \cdot V_{t-1}^\pi\!\left(T(d,b,w,o)\right)}$$
 
 **Optimal bowling plan:**
 
@@ -138,8 +131,6 @@ This follows directly from the fact that a T20 match has no draw: the batting si
 For the bowling problem with fixed player identities, exact backward induction over $(d, b, w)$ is feasible; the state space has at most $D \times B \times W \approx 221 \times 44 \times 10 \approx 97{,}000$ states and the Bellman recursion terminates in polynomial time. However, the bowling plan $\pi$ itself must be searched over the feasible set $\mathcal{F}$, which has $O(|\mathcal{F}|)$ elements; running backward induction for each candidate plan is inefficient. Monte Carlo simulation with a fixed plan provides an unbiased estimate of $V^\pi(d_0, b_0, w_0)$ directly without filling the full state table.
 
 For the **batting problem**, the state must track which specific batsmen remain, a requirement that adds a combinatorial factor of $2^n$ subsets to the state space. For $n = 6$ remaining batsmen, this multiplies the state count by $64\times$, rendering exact backward induction impractical on commodity hardware. Monte Carlo simulation with a fixed order $\sigma$ avoids this by forward-sampling from the initial state, estimating the value function at $(r_0, b_0, w_0)$ without computing all intermediate states.
-
----
 
 ## 4. Player Profile Engine
 
@@ -217,8 +208,6 @@ $$p_j^{0,\phi} \qquad \text{(dot-ball probability per ball — proxy for pressur
 
 Note that SR and ER are derived from the same underlying probability vector and are thus consistent with the simulation model: a player's simulated run output will converge to their profile-implied SR or ER as simulation count increases.
 
----
-
 ## 5. Monte Carlo Simulation
 
 ### 5.1 Estimating Win and Defend Probabilities
@@ -276,8 +265,6 @@ All $N$ simulations are advanced in parallel using NumPy vectorised operations. 
 
 A fast-evaluation pass uses $N_{\text{fast}} = 5{,}000$ simulations for initial screening during the SA search, reducing per-evaluation time to $\approx 15$ ms, with a final high-precision pass at $N = 30{,}000$ for the top-10 candidates identified by SA.
 
----
-
 ## 6. Search Algorithms
 
 ### 6.1 Batting Order: Exhaustive Enumeration with Two-Pass Refinement
@@ -330,8 +317,6 @@ $$\mathcal{C}_k\!\left(\pi\right) = \left\{ j \in \mathcal{B} \;:\; j \neq \pi_k
 This formulation explicitly enforces both quota validity and the consecutive-over rule on every proposed neighbour, ensuring $\pi' \in \mathcal{F}$ whenever $\mathcal{C}_k(\pi) \neq \emptyset$.
 
 **Execution:** The SA runs for $N_{\text{steps}} = 8{,}000$ iterations, each evaluating a proposed neighbour with $N_{\text{fast}} = 5{,}000$ simulations. All unique plans encountered during the search are cached; the top-10 unique plans are then re-evaluated with $N_{\text{refine}} = 30{,}000$ simulations for final reporting.
-
----
 
 ## 7. Case Study 1: KKR vs MI, 29 March 2026
 
@@ -409,7 +394,6 @@ Even 5 additional Death balls yields approximately 0.92 expected additional runs
 | Optimal batting order | 56.5% |
 | Gain from optimal order | **+4.1 pp** |
 
----
 
 ## 8. Case Study 2: GT vs PBKS, 31 March 2026
 
@@ -517,7 +501,6 @@ $$z = \frac{0.052}{\sqrt{2} \times 0.00187} \approx 19.7$$
 
 This is far beyond any conventional significance threshold, confirming that the observed 5.2 pp gap is a stable structural property of the plan, not simulation variance.
 
----
 
 ## 9. Comparative Analysis and Discussion
 
@@ -552,7 +535,6 @@ The KKR vs MI case provides an audit of the batting decision at the same interve
 
 **Ball-by-ball independence.** Consecutive ball outcomes are treated as i.i.d. given the current phase and player identities. Momentum effects such as a batsman in rhythm after a boundary or a bowler tightening their line under pressure are not captured. Incorporating a latent pressure or momentum state via a Hidden Markov Model would extend the framework at the cost of additional estimation complexity.
 
----
 
 ## 10. Conclusions
 
@@ -570,13 +552,11 @@ Applied to two intervention points from the 2026 IPL season, the main findings a
 
 Phase-specific quantitative decision support, grounded in a principled stochastic optimisation framework, offers a demonstrably large and actionable improvement over the heuristic approach that currently dominates in-match tactical decision-making.
 
----
 
 ## Acknowledgements
 
 Ball-by-ball data sourced from Cricsheet.org (Stevenson, 2023) under Creative Commons Attribution licence. Analysis conducted in Python 3.11 using NumPy 1.26, pandas 2.1, and matplotlib 3.8. Code and figures are available at: https://github.com/tvganesh/T20-MDP-optimisation.
 
----
 
 ## References
 
@@ -596,7 +576,6 @@ Puterman, M. L. (1994). *Markov Decision Processes: Discrete Stochastic Dynamic 
 
 Stevenson, S. (2023). Cricsheet: Ball-by-ball cricket data. Available at: https://cricsheet.org. Accessed April 2026.
 
----
 
 ## Appendix: Notation Summary
 
@@ -614,8 +593,8 @@ Stevenson, S. (2023). Cricsheet: Ball-by-ball cricket data. Available at: https:
 | $\rho(o)$ | Runs scored under outcome $o$ |
 | $\mathbf{p}_i^\phi = (p_i^{o,\phi})_{o \in \Omega}$ | Outcome probability vector: player $i$, phase $\phi$ |
 | $T(\mathcal{S}, o)$ | State transition function |
-| $V^B(r,b,w)$ | Batting win probability (value function) |
-| $V^\pi(d,b,w)$ | Bowling defend probability (value function) |
+| $V_t^B(r,b,w)$ | Batting win probability at time $t = b$ balls remaining |
+| $V_t^\pi(d,b,w)$ | Bowling defend probability at time $t = b$ balls remaining |
 | $\text{SR}_i^\phi$ | Batsman $i$ strike rate in phase $\phi$ |
 | $\text{ER}_j^\phi$ | Bowler $j$ economy rate in phase $\phi$ |
 | $p_i^{W,\phi}$ | Dismissal/wicket probability per ball |
@@ -637,4 +616,3 @@ Stevenson, S. (2023). Cricsheet: Ball-by-ball cricket data. Available at: https:
 | $T_0 = 0.05$ | Initial SA temperature |
 | $N_{\text{steps}} = 8{,}000$ | SA iteration count |
 
----
