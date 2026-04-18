@@ -13,3 +13,10 @@ Player profiles are built from ball-by-ball data covering 1,161 IPL matches from
 The framework is applied to two matches from the 2026 IPL season. In the KKR vs Mumbai Indians match, we look at the batting order MI should have used when chasing 73 off 44 balls after Rohit Sharma's dismissal. In the GT vs Punjab Kings match, we look at the bowling plan GT should have deployed to defend 80 off 60 balls. In both cases, the optimal approach differed meaningfully from what actually happened on the field — and the gap in win/defend probability was large enough to have changed the outcome.
 
 The paper is submitted to the Journal of Quantitative Analysis in Sports. The code and data for both case studies are in this repository.
+
+## References
+1. [Using Linear Programming (LP) for optimizing bowling change or batting lineup in T20 cricket](https://gigadom.in/2017/09/28/using-linear-programming-lp-for-optimizing-bowling-change-or-batting-lineup-in-t20-cricket/)
+2. **Introducing cricket package yorkr** [1](https://gigadom.in/2016/04/02/introducing-cricket-package-yorkr-part-1-beaten-by-sheer-pace/),[2](https://gigadom.in/2016/04/03/introducing-cricket-package-yorkr-part-2-trapped-leg-before-wicket/),[3](https://gigadom.in/2016/04/07/introducing-cricket-package-yorkr-part-3-foxed-by-flight/),[4](https://gigadom.in/2016/04/12/introducing-cricket-package-yorkrpart-4-in-the-block-hole/)
+3. [Natural language processing: What would Shakespeare say?](https://gigadom.in/2015/10/02/natural-language-processing-what-would-shakespeare-say/)
+
+
